@@ -61,8 +61,15 @@ try {
   git add -A
   git commit -m $Message --allow-empty | Out-Null
 
-  gh repo view $Repo *> $null
-  if ($LASTEXITCODE -eq 0) {
+  # gh 找不到仓库时会往 stderr 写东西；$ErrorActionPreference='Stop' 会把它变成
+  # 终止错误，所以这里临时放宽，并把 stderr 一并吞掉。
+  $prevEap = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  gh repo view $Repo 2>&1 | Out-Null
+  $exists = ($LASTEXITCODE -eq 0)
+  $ErrorActionPreference = $prevEap
+
+  if ($exists) {
     Write-Host "  仓库已存在，推送中……"
     git push
   } else {
