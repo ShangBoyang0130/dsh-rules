@@ -17,7 +17,11 @@
 **前提**：这台机器上已经装好了 Node.js 和 dsh。没装的话，先跑
 `winget install OpenJS.NodeJS.LTS`，再跑 `npm i -g @deepseek-ai/dsh`。
 
-1. 把本仓库下载下来：右上角绿色 **Code → Download ZIP**，解压
+**下载**：[最新发布版](https://github.com/ShangBoyang0130/dsh-rules/releases/latest)（点开选 **Source code (zip)**），
+或者右上角绿色 **Code → Download ZIP**。区别只有一条：发布版钉在某个标签上、内容不会变；
+Code 那份跟着 `main` 走 —— 所以没发新 release 的时候，Code 那份可能比发布版新。
+
+1. 解压下载到的 zip
 2. **双击 `安装.bat`**
 3. 按提示填工作区目录（直接回车就用默认的）
 4. 装完之后：**关掉正在跑的 dsh**，双击 `<工作区>\活跃\启动dsh.bat`

@@ -1,0 +1,6 @@
+# 换行符：仓库里一律存 LF；双击运行的批处理在检出时转成 CRLF（Windows 惯例）
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# .ps1 刻意保持 LF —— PowerShell 5.1 读写 LF 正常，改成 CRLF 反而让维护者的工作区报警告
