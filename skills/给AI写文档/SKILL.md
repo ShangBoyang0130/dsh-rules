@@ -1,7 +1,7 @@
 ---
 name: writing-for-agents
 description: 新建或修改 skill、AGENTS.md，或往任何会被 agent 读到的文档里写字之前，先读这个 —— 含 invocation 判定、description 写法、长度判据、交稿前三项自检。
-whenToUse: 新建或修改 skill、AGENTS.md；用户说「加个 skill」「改规矩文件」「这条该怎么写」「描述该怎么写」时。
+whenToUse: 用户说「加个 skill」「改规矩文件」「这条该怎么写」「描述该怎么写」时。
 ---
 
 # 给 agent 写文档
@@ -45,10 +45,10 @@ model-invoked。只在手动触发时才用 → 做成 user-invoked。
 | 文件名 | **必须叫 `SKILL.md`**。改了 skill 会彻底消失，而且不报错 |
 | 文件夹名 | **自由**，中文也行 —— 身份来自 frontmatter 的 `name`，不是文件夹 |
 | `name` | 必须 kebab-case（小写字母/数字/连字符），否则整个 skill 被跳过 |
-| 可用的键 | 只有 `name`、`description`、`whenToUse`、`disable-model-invocation`、`user-invocable`、`metadata`。别的工具家的键（如 `argument-hint`）写了不生效 |
-| 放哪 | `~/.dsh/skills/<随便什么文件夹名>/SKILL.md` —— dsh 专用的放这儿；想给别的 agent 工具共用的，放 `~/.agents/skills/`（两个根都会被扫） |
-| 新建后多久可见 | 模型目录**当场**生效；**`/` 菜单要重启 dsh 服务**才看得到（进程级收集缓存按 preset 作用域存，同 preset 的所有会话共用一条 —— **开新会话和刷新页面都没用**）|
-| 什么会被自动读 | 只有 `AGENTS.md`（`~/.dsh/` 一份 + 工作区一份）。**skill 正文只在被调用时才进上下文** |
+| 可用的键 | 只有 `name`、`description`、`whenToUse`、`disable-model-invocation`、`user-invocable`、`metadata`。别的工具家的键（如 `argument-hint`）写了不生效（判据：模型目录里看得见 = 生效；不生效时既不报错、也不占上下文） |
+| 放哪 | `~/.dsh/skills/<随便什么文件夹名>/SKILL.md` —— dsh 专用的放这儿；想给别的 agent 工具共用的，放 `~/.agents/skills/`（两个根都会被扫）。**代价**：`disable-model-invocation` / `whenToUse` / `user-invocable` 是 dsh 专有键，放过去不保证生效 —— 要 user-invoked 就留在 `~/.dsh/skills/` |
+| 新建后多久可见 | 模型目录**当场**生效；**`/` 菜单要重启 dsh 服务**才看得到（重启 = 关掉正在跑的 dsh 进程、再跑工作区的 `活跃\启动dsh.bat`；进程级收集缓存按 preset 作用域存，同 preset 的所有会话共用一条 —— **开新会话和刷新页面都没用**）|
+| 什么会被自动读 | `AGENTS.md` / `CLAUDE.md` 加同名 `.local` 覆盖层，**从项目根到当前目录每层都算**（本机实测：`~/.dsh\AGENTS.md` + 工作区 `AGENTS.md` + 工作区 `AGENTS.local.md` 共 3 份；**全局那份没有 `.local` 变体**）。**skill 正文只在被调用时才进上下文** |
 
 ## 四、长度：优先砍，往「披露」推
 
@@ -57,6 +57,8 @@ model-invoked。只在手动触发时才用 → 做成 user-invoked。
 - **分支测试**：每个分支都要的写正文；只有某些分支需要的，推到指针后面
 - **沉积**是默认下场：加了觉得安全、删了觉得可惜，最后要钻穿才能找到还活着的那些
 - **优先砍，不优先加。** 一条修改让文档变长、却没换来可判定性，先怀疑它值不值
+- **「优先砍」砍的是条目，不是容器。** 一个文件里混着耐久内容和易变内容时，退场规则要分级：
+  易变的删行、耐久的留着 —— 整份删掉的话，下次得把机制知识重写一遍
 - 一份**纯参考**的文档（全是规则、没有步骤）是正常形态，不是缺陷
 
 ## 五、判断该删哪条：no-op 测试
@@ -76,7 +78,7 @@ model-invoked。只在手动触发时才用 → 做成 user-invoked。
 
 改完任何一份这类文档，**逐项做完再交**：
 
-1. **重读指代** —— 「我」= 用户，指 AI 就写「AI」，全文不出现「你」。
+1. **重读指代** —— 「我」= 用户，指 AI 就写「AI」，全文不出现「你」；引用了别的 skill / 文件的**专名或路径**，逐个对磁盘核一遍（名字会被改、路径会搬）。
    **新加或改写一句之后，回头重读「它 / 该文件 / 该 skill」这类回指有没有变歧义。**
 2. **逐条过 no-op** —— 每条相对默认行为改变了什么？
 3. **报长度变化** —— 这一版比上一版长/短了多少（**给实测数字，不给预估**）。
