@@ -25,7 +25,7 @@ model-invoked。只在手动触发时才用 → 做成 user-invoked。
 | 别的 skill 能调用吗 | 能 | **永远不能** |
 
 【实测】加上 `disable-model-invocation: true` 之后，skill 当场从模型目录消失，但仍留在 `/`
-菜单里（带「仅限用户」标记）。**`/` 菜单本身就是 router** —— user-invoked skill 再多，也不需要
+菜单里（带「仅限用户」标记）—— 这条是在 dsh 上实测的；**`/` 菜单本身就是 router** —— user-invoked skill 再多，也不需要
 另做一个 router skill。
 
 ## 二、description 就是「指针」
@@ -47,8 +47,8 @@ model-invoked。只在手动触发时才用 → 做成 user-invoked。
 | `name` | 必须 kebab-case（小写字母/数字/连字符），否则整个 skill 被跳过 |
 | 可用的键 | 只有 `name`、`description`、`whenToUse`、`disable-model-invocation`、`user-invocable`、`metadata`。别的工具家的键（如 `argument-hint`）写了不生效（判据：模型目录里看得见 = 生效；不生效时既不报错、也不占上下文） |
 | 放哪 | `~/.dsh/skills/<随便什么文件夹名>/SKILL.md` —— dsh 专用的放这儿；想给别的 agent 工具共用的，放 `~/.agents/skills/`（两个根都会被扫）。**代价**：`disable-model-invocation` / `whenToUse` / `user-invocable` 是 dsh 专有键，放过去不保证生效 —— 要 user-invoked 就留在 `~/.dsh/skills/` |
-| 新建后多久可见 | 模型目录**当场**生效；**`/` 菜单要重启 dsh 服务**才看得到（重启 = 关掉正在跑的 dsh 进程、再跑工作区的 `活跃\启动dsh.bat`；进程级收集缓存按 preset 作用域存，同 preset 的所有会话共用一条 —— **开新会话和刷新页面都没用**）|
-| 什么会被自动读 | `AGENTS.md` / `CLAUDE.md` 加同名 `.local` 覆盖层，**从项目根到当前目录每层都算**（本机实测：`~/.dsh\AGENTS.md` + 工作区 `AGENTS.md` + 工作区 `AGENTS.local.md` 共 3 份；**全局那份没有 `.local` 变体**）。**skill 正文只在被调用时才进上下文** |
+| 新建后多久可见 | 模型目录**当场**生效；**`/` 菜单要重启 dsh 服务**才看得到（重启 = 关掉正在跑的 dsh 进程再启动；用包里的 `安装.bat` 装过的话，工作区里有一个 `活跃\启动dsh.bat` 可以直接双击。进程级收集缓存按 preset 作用域存，同 preset 的所有会话共用一条 —— **开新会话和刷新页面都没用**）|
+| 什么会被自动读 | `AGENTS.md` / `CLAUDE.md` 加同名 `.local` 覆盖层，**从项目根到当前目录每层都算**（典型情形：全局 `~/.dsh\AGENTS.md` + 工作区 `AGENTS.md` + 工作区 `AGENTS.local.md` 共 3 份；**全局那份没有 `.local` 变体** —— 要放私有补充就放工作区那份）。**skill 正文只在被调用时才进上下文** |
 
 ## 四、长度：优先砍，往「披露」推
 
