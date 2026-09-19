@@ -45,7 +45,7 @@ function sessionPath(id) {
         .filter((p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } })
     : [];
   for (const root of roots) {
-    // ⚠️ 会话目录名有两种真实形态（2026-09-18 实测：本机 60 个里 35 个带 `session-` 前缀、
+    // ⚠️ 会话目录名有两种真实形态（2026-09-18 在发布方这台机器上实测：60 个里 35 个带 `session-` 前缀、
     //    25 个不带）—— 只认一种会让近一半会话「找不到」。id 传裸 uuid 或带前缀的都要认。
     const bare = id.startsWith('session-') ? id.slice('session-'.length) : id;
     const dir = fs.readdirSync(root).find((d) => d === 'session-' + bare || d === bare);

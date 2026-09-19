@@ -54,9 +54,19 @@ echo [i] Server ready in about %n%s. Opening the app window.
 >nul ping -n 2 127.0.0.1
 
 :open
+rem  2026-09-18 fix: the server answers HTTP 401 without a token, and %APP%
+rem  points at a .lnk that is not next to this file (it sits on the desktop),
+rem  so read the tokenised URL out of the log first.
+set "APPURL="
+for /f "tokens=3" %%u in ('findstr /c:"dsh web: http" "%LOG%" 2^>nul') do set "APPURL=%%u"
+if defined APPURL (
+  start "" "%APPURL%"
+  exit /b 0
+)
 if exist "%APP%" (
   start "" "%APP%"
 ) else (
+  echo [i] No token in %LOG% - opening the bare address (it will answer 401).
   start "" "%URL%"
 )
 exit /b 0
