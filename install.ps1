@@ -7,7 +7,14 @@
       .\install.ps1 -Workspace D:\我的工作区
 
   它做四件事：问工作区 → 拷文件 → 填启动脚本的路径 → 报告。
-  已存在的文件先备份成 .bak.<时间戳>，再覆盖。
+
+  三类文件的装法**不一样**（2026-09-20 改，别按老话术理解）：
+   · 三份「你自己的」规矩文件（全局 AGENTS.md / 术语表.md / 工作区 AGENTS.md）：
+     **已有就一个字不碰** —— 包里的新版另写到旁边 `名字.新版.<时间戳>`，
+     并印一句合并指路（读不读、合哪些，由你决定）；**不存在**时照常装，不旁存
+   · skill 与 `skills\说明.txt`（包的内容 —— 必须能被更新修好）：
+     已有就**先备份成 `.bak.<时间戳>` 再覆盖**；覆盖时提示你的旧版在哪个 .bak 里
+   · 三份工作区空模板（交接 / 待办 / 归档索引）：已有就**直接跳过**（那是你写的活文档）
 #>
 [CmdletBinding()]
 param(
@@ -18,8 +25,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $here  = $PSScriptRoot
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$script:installed = 0
-$script:backedUp  = 0
+$script:installed  = 0
+$script:backedUp   = 0
+$script:sideCopies = 0
 
 Write-Host ''
 Write-Host '=== dsh 规矩包 安装 ===' -ForegroundColor Cyan
@@ -40,7 +48,7 @@ if (-not (Test-Path $Workspace)) {
 Write-Host "  工作区：$Workspace"
 Write-Host "  规矩目录：$DshHome"
 
-# ── 2. 装一个文件：先备份，再覆盖 ─────────────────────────────
+# ── 2. 装一个**包的内容**文件（skill / 启动脚本）：先备份，再覆盖 ──
 function Install-File {
   param([string]$From, [string]$To)
   # 开跑前先确认源在（2026-09-18 加）：解压工具若不认 zip 里的中文名，会在**第二个文件**上炸，
@@ -54,7 +62,40 @@ function Install-File {
     Copy-Item $To "$To.bak.$stamp" -Force
     $script:backedUp++
     Write-Host "  备份 → $(Split-Path $To -Leaf).bak.$stamp" -ForegroundColor DarkGray
+    # 覆盖前多印这一句（2026-09-20 加）：这些是包的内容、本来就该被新版修好；
+    # 但用户自己改过的话，得知道旧版去哪找 —— 否则「更新修好了它」和「更新吃掉了我的改动」
+    # 从屏幕上分不出来。
+    Write-Host "         （你自己改过它的话，你的版本就在这个 .bak 里）" -ForegroundColor DarkGray
   }
+  Copy-Item $From $To -Force
+  $script:installed++
+  Write-Host "  装上 → $To" -ForegroundColor Green
+}
+
+# ── 2b. 装一份「用户自己的」规矩文件：已有就一个字不碰 ──────────
+function Install-RulesFile {
+  param([string]$From, [string]$To)
+  # ⚠️ **这三份是用户自己的规矩文件**（2026-09-20 修，T9 只读核查查实的最坏一条）：
+  #    用户会往全局 AGENTS.md / 术语表.md / 工作区 AGENTS.md 里写自己的路标和私有约定。
+  #    旧行为是「备份后覆盖」—— 在真工作区上跑一次，根 AGENTS.md 从 66 行掉到 40 行，
+  #    精确丢 24 整行 + 1 行截短（含「线清单表」「通用层清单」，那两块别处没有正本）。
+  #    规矩跟模板那条一样：**用户已经写过的东西，一个字都不碰。**
+  #    但规矩文件又必须能被更新 —— 所以：**发布版另写到旁边** `名字.新版.<stamp>`，
+  #    再印一句合并指路；**不存在**时走正常安装（照装、无需旁存）。
+  if (-not (Test-Path $From)) {
+    throw "包里的文件找不到：$From`n（多半是解压工具没认出中文文件名 —— 换一个解压工具重来，或从 GitHub 重新下载）"
+  }
+  if (Test-Path $To) {
+    $side = "$To.新版.$stamp"
+    Copy-Item $From $side -Force
+    $script:sideCopies++
+    Write-Host "  已有，一个字没碰 → $To" -ForegroundColor Yellow
+    Write-Host "  新版另放 → $(Split-Path $To -Leaf).新版.$stamp" -ForegroundColor Cyan
+    Write-Host "  合并指路：你这份没动；包里的新版在 $side —— 读一遍，再决定把哪些合进来。" -ForegroundColor Cyan
+    return
+  }
+  $dir = Split-Path $To -Parent
+  if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
   Copy-Item $From $To -Force
   $script:installed++
   Write-Host "  装上 → $To" -ForegroundColor Green
@@ -63,9 +104,10 @@ function Install-File {
 # ── 3. 规矩文件 ───────────────────────────────────────────────
 Write-Host ''
 Write-Host '[规矩文件]'
-Install-File "$here\rules\global-AGENTS.md"    (Join-Path $DshHome 'AGENTS.md')
-Install-File "$here\rules\global-术语表.md"     (Join-Path $DshHome '术语表.md')
-Install-File "$here\rules\workspace-AGENTS.md" (Join-Path $Workspace 'AGENTS.md')
+# ⚠️ 这三份走 Install-RulesFile（**已有就一个字不碰**），不是 Install-File —— 见上面 2b 那段注释。
+Install-RulesFile "$here\rules\global-AGENTS.md"    (Join-Path $DshHome 'AGENTS.md')
+Install-RulesFile "$here\rules\global-术语表.md"     (Join-Path $DshHome '术语表.md')
+Install-RulesFile "$here\rules\workspace-AGENTS.md" (Join-Path $Workspace 'AGENTS.md')
 
 # ── 4. skill ──────────────────────────────────────────────────
 # 整目录一起拷：有的 skill 带脚本（比如会话预检那套），只拷 SKILL.md 会装出个空壳。
@@ -85,7 +127,7 @@ Install-File "$here\skills\说明.txt" (Join-Path $skillDst '说明.txt')
 # ── 5. 工作区骨架：目录 + 三份空模板 ─────────────────────────
 # 为什么建这些：这套规矩的正文会提到「交接放 `活跃\`」「做完的归档到 `存放\`」「要干的活看待办」，
 # 只装规矩文件的话，第一次用交接 skill 会撞上一个不存在的目录。所以装的时候顺手把骨架建出来。
-# 已存在的文件**不覆盖**（走跟上面一样的备份规则），所以重复安装是安全的。
+# 已存在的文件**不覆盖**（这三份模板走「已有，跳过」），所以重复安装是安全的。
 Write-Host ''
 Write-Host '[工作区骨架]'
 foreach ($d in @('活跃', '存放', '_tmp')) {
@@ -145,8 +187,18 @@ Write-Host "         （里面的工作区已填成 $Workspace）"
 # ── 7. 报告 ───────────────────────────────────────────────────
 Write-Host ''
 Write-Host '=== 装完了 ===' -ForegroundColor Cyan
-Write-Host "  新装 / 覆盖：$script:installed 个文件"
-Write-Host "  备份：$script:backedUp 个（后缀 .bak.$stamp，确认没问题后可以删）"
+Write-Host "  装上 / 覆盖：$script:installed 个文件 —— 都是「包的内容」那一类"
+Write-Host '               （skill / 说明.txt / 启动脚本；规矩文件原来没有时也算在这里，'
+Write-Host '                 所以这一个数里「新装」和「覆盖」是混着的 —— 靠下面的后缀分）'
+Write-Host ''
+Write-Host "  两种后缀，分清楚（后缀里的时间戳都是 $stamp）：" -ForegroundColor Cyan
+Write-Host "   · .bak.$stamp —— 备份后覆盖：$script:backedUp 个"
+Write-Host '       这些是**包的内容**：更新会把它们换成新版；你自己改过的话，'
+Write-Host '       你的版本就在 同名.bak.<时间戳> 里（想退回就用它盖回去）。'
+Write-Host "   · .新版.$stamp —— 一个字没碰：$script:sideCopies 个规矩文件"
+Write-Host '       这些是**你自己写的**那三份（AGENTS.md / 术语表.md）：你那份原样留着，'
+Write-Host '       包里的新版另放在 同名.新版.<时间戳> —— 两边对不上是正常的，读一遍再决定合哪些。'
+Write-Host '   （确认没问题后 .bak.* 可以删；.新版.* 合完也可以删）'
 Write-Host ''
 Write-Host '接下来三步：'
 Write-Host '  1. 如果 dsh 正在跑，先关掉；然后双击上面那个 启动dsh.bat'
